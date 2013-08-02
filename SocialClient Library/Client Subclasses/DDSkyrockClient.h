@@ -11,9 +11,6 @@
 #import "DDSocialClient.h"
 #import "ASIHTTPRequest.h"
 
-#define SKYROCK_CONSUMER_KEY @""
-#define SKYROCK_CONSUMER_SECRET @""
-
 
 @protocol DDSkyrockClientDelegate <NSObject, DDSocialClientDelegate>
 
