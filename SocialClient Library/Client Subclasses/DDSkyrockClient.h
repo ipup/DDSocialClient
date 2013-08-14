@@ -31,6 +31,8 @@
 -(void) SkyrockClientPostBlogArticleSucceedWithURL:(NSString*)urlStr;
 -(void) SkyrockClientPostBlogArticleFailedWithError:(NSError*)error;
 
+-(void) SkyrockClientPostNewsFeedSucceed;
+-(void) SkyrockClientPostNewsFeedFailedWithError:(NSError*)error;
 
 @end
 
@@ -52,6 +54,7 @@
 -(void) postProfilePhoto:(UIImage*)image;
 -(void) updateStatus:(NSString*)text;
 -(void) getUserData;
+-(void) postNewsFeed:(NSString*)message;
 
 
 // to use to sign request for other SkyrockAPI request

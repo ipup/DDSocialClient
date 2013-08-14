@@ -110,6 +110,8 @@
 #define SPC_RequestTypeProfilePhoto 12
 #define SPC_RequestTypeUpdateStatus 13
 #define SPC_RequestTypeGetUser 14
+#define SPC_RequestTypeNewsFeed 15
+
 
 
 
@@ -630,6 +632,8 @@
 #define kSPC_MOOD @"mood/set_mood.json"
 #define kSPC_AVATAR @"profile/add_picture.json"
 #define kSPC_BLOG @"blog/new_post.json"
+#define kSPC_NEWS @"newsfeed/send_event.json"
+
 
 
 -(void) _postBlogPhoto:(NSArray*)args
@@ -649,6 +653,7 @@
 
 #define kSPC_Title @"title"
 #define kSPC_Content @"text"
+#define kSPC_Message @"message"
 #define kSPC_ImageData @"imageData"
 
 
@@ -695,6 +700,35 @@
     return r;
 }
 
+-(ASIFormDataRequest*) _getNewsFeedRequestFor:(NSDictionary*)infos
+{
+    
+    NSURL* url = [[NSURL alloc] initWithString:[NSString stringWithFormat:@"%@%@", kSPCBaseURL, kSPC_NEWS]];
+    SkyLog(@"will send to |%@|", [url absoluteString]);
+    
+    ASIFormDataRequest* r = [ASIFormDataRequest requestWithURL:url];
+    
+    [r addRequestHeader:@"Accept" value:@"application/json"];
+    [r addRequestHeader:@"Content-type" value:@"application/json"];
+    [r setRequestMethod:@"POST"];
+    
+    
+    NSString* message = [infos objectForKey:kSPC_Message];
+    
+    [r addPostValue:message forKey:@"message"];
+    
+    NSString* oAuthHeader = [self oauthHeaderForUrl:[url absoluteString] isPost:YES postParams:nil];
+    [r addRequestHeader:@"Authorization" value:oAuthHeader];
+    
+	[r setDidStartSelector: @selector(requestAPIStarted:)] ;
+	[r setDidFinishSelector: @selector(requestAPIFinished:)] ;
+	[r setDidFailSelector: @selector(requestAPIFailed:)] ;
+    
+    [r setDelegate:self];
+    [url release];
+    
+    return r;
+}
 
 -(void) postBlogPhoto:(UIImage*)image withTitle:(NSString*)title;
 {
@@ -755,6 +789,30 @@
     ASIFormDataRequest* r = [self _getBlogRequestFor:infos];
     [self _setRequestType:SPC_RequestTypeBlogArticle toRequest:r];    
     [r startAsynchronous];   
+    
+    
+}
+
+-(void) postNewsFeed:(NSString*)message
+{
+    if(!message) {
+        message = @"";
+    }
+    
+    self.p_argRestart = [NSArray arrayWithObjects:message,nil];
+    self.p_typeRestart = SPC_RequestTypeNewsFeed;
+    
+	if (![self serviceHasValidToken] || [self.token hasExpired])
+    {
+		[self login];
+		return;
+	}
+    
+    
+    NSDictionary* infos = [NSDictionary dictionaryWithObjectsAndKeys:message, kSPC_Message, nil];
+    ASIFormDataRequest* r = [self _getNewsFeedRequestFor:infos];
+    [self _setRequestType:SPC_RequestTypeNewsFeed toRequest:r];
+    [r startAsynchronous];
     
     
 }
@@ -1062,7 +1120,29 @@
             }                
             
             break; 
-        }            
+        }
+        case SPC_RequestTypeNewsFeed:
+        {
+            if (status==200) {
+                                
+                if ([response isEqualToString:@"true"]) {
+                    if ([self.delegate respondsToSelector:@selector(SkyrockClientPostNewsFeedSucceed)])
+                        [self.delegate SkyrockClientPostNewsFeedSucceed];
+                    return;
+                }
+            }
+            
+            if ([self.delegate respondsToSelector:@selector(SkyrockClientPostNewsFeedFailedWithError:)]) {
+                NSString* errStr = [NSString stringWithFormat:@"Post News Feed failed [%d]", status];
+                
+                NSError *error = [NSError errorWithDomain:DDSocialClientError
+                                                     code:4
+                                                 userInfo:[NSDictionary dictionaryWithObject:errStr forKey:NSLocalizedDescriptionKey]];
+                [self.delegate SkyrockClientPostNewsFeedFailedWithError:error];
+            }
+            
+            break;
+        }
         default:
             break;
     }
@@ -1124,6 +1204,13 @@
             {
                 if ([self.delegate respondsToSelector:@selector(SkyrockClientPostBlogArticleFailedWithError::)])                 
                     [self.delegate SkyrockClientPostBlogArticleFailedWithError:error];
+                break;
+            }
+                
+            case SPC_RequestTypeNewsFeed:
+            {
+                if ([self.delegate respondsToSelector:@selector(SkyrockClientPostNewsFeedFailedWithError:)])
+                    [self.delegate SkyrockClientPostNewsFeedFailedWithError:error];
                 break;
             }
                 
