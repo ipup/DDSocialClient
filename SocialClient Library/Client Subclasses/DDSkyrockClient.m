@@ -15,7 +15,7 @@
 
 
 #define kSPCBaseURL @"https://api.skyrock.mobi/v2/"
-#define SPC_FakeCallBackURL @"http://monsite.fr/"
+#define SPC_FakeCallBackURL @"http://www.skyrock.com"
 
 
 #ifdef DEBUG
